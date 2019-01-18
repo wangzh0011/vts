@@ -1,0 +1,74 @@
+#请求认证服务url
+authUrl=http://219.133.95.10:8991/openapi/auth/token
+#船舶计划url
+vesselPlanUrl=http://219.133.95.10:8991/openapi/VesselPlan
+#船舶计划url
+#vesselUrl=http://219.133.95.10/openapi/VesslPlan
+
+#认证服务相关参数
+grant_type=password
+username=dcw
+password=e0a8aa81eb1762d529783cf587f6f422
+client_id=APP001
+client_secret=29EE8AB402A3E7DC5253D8BEB8946FC0
+
+#代理服务的ip和端口
+proxyIp=172.25.4.220
+proxyPort=8080
+
+#数据库连接参数N4 uat
+#jdbc.driver=oracle.jdbc.driver.OracleDriver
+#jdbc.url=jdbc:oracle:thin:@172.25.35.64:1661:QCVMT
+#jdbc.username=epdataapp
+#jdbc.password=inuits44
+
+jdbc.driver=oracle.jdbc.driver.OracleDriver
+
+#N4 pro
+jdbc.url=jdbc:oracle:thin:@172.25.35.63:1661:ODS
+jdbc.username=dcblinkapp
+jdbc.password=steppe11
+
+#BARGELINK UAT
+jdbc.url1=jdbc:oracle:thin:@172.25.40.31:1641/dbgu.dachanbayone.com
+jdbc.username1=vtsro
+jdbc.password1=vtsro123
+
+#BARGELINK PRO FOR PORT
+jdbc.url2=jdbc:oracle:thin:@172.25.35.31:1661/dbgp.dachanbayone.com
+jdbc.username2=bargeadm
+jdbc.password2=bargeadm123
+
+#获取船舶计划sql  大船
+vesselPlanSql=SELECT DISTINCT VISIT referenceid, Ves_name enShipName, AQ berthArrive, AQ berthDeliver, PREPORT previousPort, NEXTPORT, ETB, ETD, NVL (LOAD + Disc, 0) BOXES, 1 waterLine, remark comments, atb, atd, CUSTDFF_VD01, PHASE FROM ( SELECT DISTINCT acv_ob. ID visit, VV_OB. NAME Ves_name, AQ. ID AQ, NVL (vvvd_ob.est_load, 0) LOAD, NVL (vvvd_ob.est_discharge, 0) Disc, ( SELECT EFE_1.TO_VALUE FROM EDI_FILTER_ENTRY EFE_1 WHERE EFE_1.EDIFILTER_GKEY IN ( SELECT GKEY FROM EDI_FILTER ef WHERE ef. NAME = 'A00_PORT_CN_O' ) AND EFE_1.FROM_value = ( SELECT RUC. ID FROM ref_point_calls RPC, REF_ROUTING_POINT RRP, REF_UNLOC_CODE RUC WHERE RPC.itin_gkey = AVD_OB.itinereray AND RPC.point_gkey = RRP.gkey AND RRP.unloc_gkey = RUC.gkey AND RPC.calling_order = ( SELECT MAX (rpc1.calling_order) FROM ref_point_calls rpc1 WHERE rpc1.calling_order < ( SELECT rpc2.calling_order FROM ref_point_calls rpc2 WHERE rpc2.itin_gkey = rpc.itin_gkey AND ( rpc2.point_gkey = 2138 OR rpc2.point_gkey = 76820279 OR rpc2.point_gkey = 103254694 ) ) ) ) ) PREPORT, ( SELECT EFE_1.TO_VALUE FROM EDI_FILTER_ENTRY EFE_1 WHERE EFE_1.EDIFILTER_GKEY IN ( SELECT GKEY FROM EDI_FILTER ef WHERE ef. NAME = 'A00_PORT_CN_O' ) AND EFE_1.FROM_value = ( SELECT RUC. ID FROM ref_point_calls RPC, REF_ROUTING_POINT RRP, REF_UNLOC_CODE RUC WHERE RPC.itin_gkey = AVD_OB.itinereray AND RPC.point_gkey = RRP.gkey AND RRP.unloc_gkey = RUC.gkey AND RPC.calling_order = ( SELECT MIN (rpc1.calling_order) FROM ref_point_calls rpc1 WHERE rpc1.calling_order > ( SELECT rpc2.calling_order FROM ref_point_calls rpc2 WHERE rpc2.itin_gkey = rpc.itin_gkey AND ( rpc2.point_gkey = 2138 OR rpc2.point_gkey = 76820279 OR rpc2.point_gkey = 103254694 ) ) ) ) ) NEXTPORT, NVL ( TO_CHAR ( VVB_OB.ATA, 'yyyy/MM/dd HH24:mi' ), TO_CHAR ( VVVD_OB.FLEX_DATE01, 'yyyy/MM/dd HH24:mi' ) ) ETB, NVL ( TO_CHAR ( VVB_OB.ATD, 'yyyy/MM/dd HH24:mi' ), TO_CHAR ( AVD_OB.ETD, 'yyyy/MM/dd HH24:mi' ) ) ETD, 'DCBI' remark, TO_CHAR ( acv_ob.ata, 'yyyy/MM/dd HH24:mi' ) ATB, TO_CHAR ( acv_ob.atd, 'yyyy/MM/dd HH24:mi' ) ATD, VVVD_OB.CUSTDFF_VD01, acv_ob.phase FROM ARGO_CARRIER_VISIT ACV_OB, ARGO_VISIT_DETAILS AVD_OB, VSL_VESSEL_VISIT_DETAILS VVVD_OB, VSL_VESSELS VV_OB, VSL_VESSEL_BERTHINGS VVB_OB, ARGO_QUAY AQ, ref_carrier_service rae, ( SELECT MAX (vvb_ob.QUAY) vvb_quay, MAX (vvb_ob.gkey) vvbgkey, vvb_ob.vvd_gkey FROM ARGO_CARRIER_VISIT ACV_OB, ARGO_VISIT_DETAILS AVD_OB, VSL_VESSEL_VISIT_DETAILS VVVD_OB, VSL_VESSELS VV_OB, VSL_VESSEL_BERTHINGS VVB_OB WHERE ACV_OB.FCY_GKEY = 2161 AND AVD_OB.GKEY (+) = ACV_OB.CVCVD_GKEY AND VVVD_OB.VVD_GKEY (+) = AVD_OB.GKEY AND VV_OB.GKEY (+) = VVVD_OB.VESSEL_GKEY AND VVVD_OB.vvd_gkey = VVB_OB.vvd_gkey AND VVVD_OB.CLASSIFICATION = 'DEEPSEA' AND ACV_OB.PHASE IN ( '20INBOUND', '30ARRIVED', '40WORKING', '50COMPLETE' ) AND VV_OB. NAME NOT LIKE '%DUMMY%' GROUP BY vvb_ob.vvd_gkey ) TEMP1 WHERE ACV_OB.FCY_GKEY = 2161 AND AVD_OB.GKEY (+) = ACV_OB.CVCVD_GKEY AND VVVD_OB.VVD_GKEY (+) = AVD_OB.GKEY AND VV_OB.GKEY (+) = VVVD_OB.VESSEL_GKEY AND VVVD_OB.CLASSIFICATION = 'DEEPSEA' AND VVVD_OB.vvd_gkey = VVB_OB.vvd_gkey AND ACV_OB.PHASE IN ( '20INBOUND', '30ARRIVED', '40WORKING', '50COMPLETE' ) AND AVD_OB.SERVICE = RAE.GKEY AND RAE. ID <> 'DMY' AND VV_OB. NAME NOT LIKE '%DUMMY%' AND AQ.GKEY = TEMP1.vvb_quay AND VVB_OB.gkey = TEMP1.vvbgkey UNION ALL SELECT DISTINCT acv_ob. ID visit, VV_OB. NAME Ves_name, AQ. ID AQ, NVL (vvvd_ob.est_load, 0) LOAD, NVL (vvvd_ob.est_discharge, 0) Disc, ( SELECT EFE_1.TO_VALUE FROM EDI_FILTER_ENTRY EFE_1 WHERE EFE_1.EDIFILTER_GKEY IN ( SELECT GKEY FROM EDI_FILTER ef WHERE ef. NAME = 'A01_PORT_CN_O' ) AND EFE_1.FROM_value = ( SELECT RUC. ID FROM ref_point_calls RPC, REF_ROUTING_POINT RRP, REF_UNLOC_CODE RUC WHERE RPC.itin_gkey = AVD_OB.itinereray AND RPC.point_gkey = RRP.gkey AND RRP.unloc_gkey = RUC.gkey AND RPC.calling_order = ( SELECT MAX (rpc1.calling_order) FROM ref_point_calls rpc1 WHERE rpc1.calling_order < ( SELECT rpc2.calling_order FROM ref_point_calls rpc2 WHERE rpc2.itin_gkey = rpc.itin_gkey AND ( rpc2.point_gkey = 2138 OR rpc2.point_gkey = 76820279 OR rpc2.point_gkey = 103254694 ) ) ) ) ) PREPORT, ( SELECT EFE_1.TO_VALUE FROM EDI_FILTER_ENTRY EFE_1 WHERE EFE_1.EDIFILTER_GKEY IN ( SELECT GKEY FROM EDI_FILTER ef WHERE ef. NAME = 'A01_PORT_CN_O' ) AND EFE_1.FROM_value = ( SELECT RUC. ID FROM ref_point_calls RPC, REF_ROUTING_POINT RRP, REF_UNLOC_CODE RUC WHERE RPC.itin_gkey = AVD_OB.itinereray AND RPC.point_gkey = RRP.gkey AND RRP.unloc_gkey = RUC.gkey AND RPC.calling_order = ( SELECT MIN (rpc1.calling_order) FROM ref_point_calls rpc1 WHERE rpc1.calling_order > ( SELECT rpc2.calling_order FROM ref_point_calls rpc2 WHERE rpc2.itin_gkey = rpc.itin_gkey AND ( rpc2.point_gkey = 2138 OR rpc2.point_gkey = 76820279 OR rpc2.point_gkey = 103254694 ) ) ) ) ) NEXTPORT, NVL ( TO_CHAR ( VVB_OB.ATA, 'yyyy/MM/dd HH24:mi' ), TO_CHAR ( VVVD_OB.FLEX_DATE01, 'yyyy/MM/dd HH24:mi' ) ) ETB, NVL ( TO_CHAR ( VVB_OB.ATD, 'yyyy/MM/dd HH24:mi' ), TO_CHAR ( AVD_OB.ETD, 'yyyy/MM/dd HH24:mi' ) ) ETD, 'DCBD' remark, TO_CHAR ( acv_ob.ata, 'yyyy/MM/dd HH24:mi' ) ATB, TO_CHAR ( acv_ob.atd, 'yyyy/MM/dd HH24:mi' ) ATD, VVVD_OB.CUSTDFF_VD01, acv_ob.phase FROM ARGO_CARRIER_VISIT ACV_OB, ARGO_VISIT_DETAILS AVD_OB, VSL_VESSEL_VISIT_DETAILS VVVD_OB, VSL_VESSELS VV_OB, VSL_VESSEL_BERTHINGS VVB_OB, ARGO_QUAY AQ, ref_carrier_service rae, ( SELECT MAX (vvb_ob.QUAY) vvb_quay, MAX (vvb_ob.gkey) vvbgkey, vvb_ob.vvd_gkey FROM ARGO_CARRIER_VISIT ACV_OB, ARGO_VISIT_DETAILS AVD_OB, VSL_VESSEL_VISIT_DETAILS VVVD_OB, VSL_VESSELS VV_OB, VSL_VESSEL_BERTHINGS VVB_OB WHERE ACV_OB.FCY_GKEY = 2169 AND AVD_OB.GKEY (+) = ACV_OB.CVCVD_GKEY AND VVVD_OB.VVD_GKEY (+) = AVD_OB.GKEY AND VV_OB.GKEY (+) = VVVD_OB.VESSEL_GKEY AND VVVD_OB.vvd_gkey = VVB_OB.vvd_gkey AND VVVD_OB.CLASSIFICATION = 'DEEPSEA' AND ACV_OB.PHASE IN ( '20INBOUND', '30ARRIVED', '40WORKING', '50COMPLETE' ) AND VV_OB. NAME NOT LIKE '%DUMMY%' GROUP BY vvb_ob.vvd_gkey ) TEMP1 WHERE ACV_OB.FCY_GKEY = 2169 AND AVD_OB.GKEY (+) = ACV_OB.CVCVD_GKEY AND VVVD_OB.VVD_GKEY (+) = AVD_OB.GKEY AND VV_OB.GKEY (+) = VVVD_OB.VESSEL_GKEY AND VVVD_OB.CLASSIFICATION = 'DEEPSEA' AND VVVD_OB.vvd_gkey = VVB_OB.vvd_gkey AND ACV_OB.PHASE IN ( '20INBOUND', '30ARRIVED', '40WORKING', '50COMPLETE' ) AND AVD_OB.SERVICE = RAE.GKEY AND RAE. ID <> 'DMY' AND VV_OB. NAME NOT LIKE '%DUMMY%' AND AQ.GKEY = TEMP1.vvb_quay AND VVB_OB.gkey = TEMP1.vvbgkey ) ORDER BY ETB ASC
+
+#获取船舶计划sql  驳船
+vesselPlanSql2=SELECT DISTINCT VISIT referenceid, Ves_name enShipName, AQ berthArrive, AQ berthDeliver, ETB, ETD, atb, atd, NVL (LOAD + Disc, 0) BOXES, 1 waterLine, remark comments, CUSTDFF_VD01, PHASE, ib_vyg, ob_vyg, to_char(EST_LOAD) EST_LOAD, to_char(EST_DISCHARGE) EST_DISCHARGE FROM ( SELECT DISTINCT acv_ob. ID visit, VV_OB. NAME Ves_name, NVL (vvvd_ob.est_load, 0) LOAD, NVL (vvvd_ob.est_discharge, 0) Disc, NVL ( TO_CHAR ( VVB_OB.ATA, 'yyyy/MM/dd HH24:mi' ), TO_CHAR ( AVD_OB.ETA, 'yyyy/MM/dd HH24:mi' ) ) ETB, NVL ( TO_CHAR ( VVB_OB.ATD, 'yyyy/MM/dd HH24:mi' ), TO_CHAR ( AVD_OB.ETD, 'yyyy/MM/dd HH24:mi' ) ) ETD, TO_CHAR ( acv_ob.ata, 'yyyy/MM/dd HH24:mi' ) ATB, TO_CHAR ( acv_ob.atd, 'yyyy/MM/dd HH24:mi' ) ATD, 'DCBI' remark, AQ. ID AQ, VVVD_OB.CUSTDFF_VD01, acv_ob.phase, vvvd_ob.ib_vyg, vvvd_ob.ob_vyg, VVVD_OB.EST_LOAD, VVVD_OB.EST_DISCHARGE FROM ARGO_CARRIER_VISIT ACV_OB, ARGO_VISIT_DETAILS AVD_OB, VSL_VESSEL_VISIT_DETAILS VVVD_OB, VSL_VESSELS VV_OB, VSL_VESSEL_BERTHINGS VVB_OB, ARGO_QUAY AQ, ref_carrier_service rae, ( SELECT MAX (vvb_ob.QUAY) vvb_quay, MAX (vvb_ob.gkey) vvbgkey, vvb_ob.vvd_gkey FROM ARGO_CARRIER_VISIT ACV_OB, ARGO_VISIT_DETAILS AVD_OB, VSL_VESSEL_VISIT_DETAILS VVVD_OB, VSL_VESSELS VV_OB, VSL_VESSEL_BERTHINGS VVB_OB WHERE ACV_OB.FCY_GKEY = 2161 AND AVD_OB.GKEY (+) = ACV_OB.CVCVD_GKEY AND VVVD_OB.VVD_GKEY (+) = AVD_OB.GKEY AND VV_OB.GKEY (+) = VVVD_OB.VESSEL_GKEY AND VVVD_OB.vvd_gkey = VVB_OB.vvd_gkey AND VVVD_OB.CLASSIFICATION = 'BARGE' AND ACV_OB.PHASE IN ( '20INBOUND', '30ARRIVED', '40WORKING', '50COMPLETE' ) GROUP BY vvb_ob.vvd_gkey ) TEMP1 WHERE ACV_OB.FCY_GKEY = 2161 AND AVD_OB.GKEY (+) = ACV_OB.CVCVD_GKEY AND VVVD_OB.VVD_GKEY (+) = AVD_OB.GKEY AND VV_OB.GKEY (+) = VVVD_OB.VESSEL_GKEY AND VVVD_OB.vvd_gkey = VVB_OB.vvd_gkey AND AVD_OB.SERVICE = RAE.GKEY AND VVVD_OB.CLASSIFICATION = 'BARGE' AND AQ.GKEY = temp1.vvb_quay AND VVB_OB.gkey = temp1.vvbgkey AND ACV_OB.PHASE IN ( '20INBOUND', '30ARRIVED', '40WORKING', '50COMPLETE' ) UNION ALL SELECT DISTINCT acv_ob. ID visit, VV_OB. NAME Ves_name, NVL (vvvd_ob.est_load, 0) LOAD, NVL (vvvd_ob.est_discharge, 0) Disc, NVL ( TO_CHAR ( VVB_OB.ATA, 'yyyy/MM/dd HH24:mi' ), TO_CHAR ( AVD_OB.ETA, 'yyyy/MM/dd HH24:mi' ) ) ETB, NVL ( TO_CHAR ( VVB_OB.ATD, 'yyyy/MM/dd HH24:mi' ), TO_CHAR ( AVD_OB.ETD, 'yyyy/MM/dd HH24:mi' ) ) ETD, TO_CHAR ( acv_ob.ata, 'yyyy/MM/dd HH24:mi' ) ATB, TO_CHAR ( acv_ob.atd, 'yyyy/MM/dd HH24:mi' ) ATD, 'DCBD' remark, AQ. ID AQ, VVVD_OB.CUSTDFF_VD01, acv_ob.phase, vvvd_ob.ib_vyg, vvvd_ob.ob_vyg, VVVD_OB.EST_LOAD, VVVD_OB.EST_DISCHARGE FROM ARGO_CARRIER_VISIT ACV_OB, ARGO_VISIT_DETAILS AVD_OB, VSL_VESSEL_VISIT_DETAILS VVVD_OB, VSL_VESSELS VV_OB, VSL_VESSEL_BERTHINGS VVB_OB, ARGO_QUAY AQ, ref_carrier_service rae, ( SELECT MAX (vvb_ob.QUAY) vvb_quay, MAX (vvb_ob.gkey) vvbgkey, vvb_ob.vvd_gkey FROM ARGO_CARRIER_VISIT ACV_OB, ARGO_VISIT_DETAILS AVD_OB, VSL_VESSEL_VISIT_DETAILS VVVD_OB, VSL_VESSELS VV_OB, VSL_VESSEL_BERTHINGS VVB_OB WHERE ACV_OB.FCY_GKEY = 2169 AND AVD_OB.GKEY (+) = ACV_OB.CVCVD_GKEY AND VVVD_OB.VVD_GKEY (+) = AVD_OB.GKEY AND VV_OB.GKEY (+) = VVVD_OB.VESSEL_GKEY AND VVVD_OB.vvd_gkey = VVB_OB.vvd_gkey AND VVVD_OB.CLASSIFICATION = 'BARGE' AND ACV_OB.PHASE IN ( '20INBOUND', '30ARRIVED', '40WORKING', '50COMPLETE' ) GROUP BY vvb_ob.vvd_gkey ) TEMP1 WHERE ACV_OB.FCY_GKEY = 2169 AND AVD_OB.GKEY (+) = ACV_OB.CVCVD_GKEY AND VVVD_OB.VVD_GKEY (+) = AVD_OB.GKEY AND VV_OB.GKEY (+) = VVVD_OB.VESSEL_GKEY AND VVVD_OB.vvd_gkey = VVB_OB.vvd_gkey AND AVD_OB.SERVICE = RAE.GKEY AND VVVD_OB.CLASSIFICATION = 'BARGE' AND AQ.GKEY = temp1.vvb_quay AND VVB_OB.gkey = temp1.vvbgkey AND ACV_OB.PHASE IN ( '20INBOUND', '30ARRIVED', '40WORKING', '50COMPLETE' ) ) ORDER BY enShipName ASC
+
+#获取驳船上下港
+vesselPlanPortSql=SELECT ( SELECT pt1.c_name FROM bargeadm.port pt1 WHERE pt1.T_PORT_CD = ltrs.last_port AND PT1.DEL_ind = 'N' ) prePort, ( SELECT pt1.c_name FROM bargeadm.port pt1 WHERE pt1.T_PORT_CD = ltrs.next_port AND PT1.DEL_ind = 'N' ) nextPort,I_DCB_VOY_CD,O_DCB_VOY_CD FROM bargeadm.ltr_schedule ltrs WHERE ltrs.I_DCB_VOY_CD = ? OR ltrs.O_DCB_VOY_CD = ?
+ 
+#插入数据
+insertVesselPlanSql=insert into vesselplan(id,referenceId,localShipName,enShipName,mmsi,imono,flagCode,shipTypeCode,dwt,callSign,shipNo,vesselLength,gross,net,vesselActionCode,localtionName,planTime,submitContact,captainNumber,previousPort,nextPort,cargoName,cargoWeight,status,voyageNumber,comments,jsonstatus,updatetime) values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,to_date(? , 'yyyy/MM/dd hh24:mi'),?,?,?,?,?,?,?,?,?,?,to_date(? , 'yyyy/MM/dd hh24:mi'))
+
+#更新数据
+updateVesselPlanSql=update vesselplan set id=?,referenceId=?,localShipName=?,enShipName=?,mmsi=?,imono=?,flagCode=?,shipTypeCode=?,dwt=?,callSign=?,shipNo=?,vesselLength=?,gross=?,net=?,vesselActionCode=?,localtionName=?,planTime=to_date(? , 'yyyy/MM/dd hh24:mi'),submitContact=?,captainNumber=?,previousPort=?,nextPort=?,cargoName=?,cargoWeight=?,status=?,voyageNumber=?,comments=?,jsonstatus=?,updatetime=to_date(? , 'yyyy/MM/dd hh24:mi') where referenceId = ?
+
+#判断数据是否存在
+isExistSql=select count(*) from vesselplan where referenceId = ?
+
+#删除数据
+deleteVesselPlanSql=delete vesselplan where referenceid = ?
+
+#根据referenceID查询vesselPlan
+getVesselPlanSql=select * from vesselplan where referenceid = ?
+
+#定时任务表达式
+expression=0 0/30 * * * ?
+
+#发件人
+from=dcb.vtssystem@dcbterminals.com
+#收件人
+to=alan.wang@dcbterminals.com
+#抄送人
+tocc=alan.wang@dcbterminals.com

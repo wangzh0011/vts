@@ -1,0 +1,8 @@
+package com.dcb.vtmis;
+
+public class Snippet {
+	public static void main(String[] args) {
+		/app/apache-tomcat-7.0.92/bin/tomcat-juli.jar
+	}
+}
+

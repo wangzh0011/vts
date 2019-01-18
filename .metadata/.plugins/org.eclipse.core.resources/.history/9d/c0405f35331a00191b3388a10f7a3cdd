@@ -1,0 +1,46 @@
+package com.dcb.test.myTest;
+
+import java.util.Properties;
+
+import javax.mail.MessagingException;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
+
+import org.springframework.mail.javamail.JavaMailSenderImpl;
+import org.springframework.mail.javamail.MimeMessageHelper;
+
+public class TestJavaMailSenderImpl {
+	public static String senderAddress = "alan.wang@DCBTerminals.com";
+	public static String senderPasswd = "";
+	public static String recipientAddress = "";
+	public static String host = "fmail.dachanbayone.com";
+	public static int port = 25;
+	public JavaMailSenderImpl createMailSender() {
+		JavaMailSenderImpl sender = new JavaMailSenderImpl();
+		sender.setHost(host);
+		sender.setUsername(senderAddress);
+//		sender.setPassword(senderPasswd);
+		sender.setDefaultEncoding("utf-8");
+		Properties pro = new Properties();
+//		pro.setProperty("mail.smtp.auth", "false");
+//		pro.setProperty("mail.smtp.timeout", "20000");
+		sender.setJavaMailProperties(pro);
+		return sender;
+	}
+	
+	public void sendHtmlMail(String to,String subject,String html) throws MessagingException {
+		JavaMailSenderImpl mail = createMailSender();
+		MimeMessage msg = mail.createMimeMessage();
+		MimeMessageHelper mime = new MimeMessageHelper(msg,true,"utf-8");
+		mime.setFrom(new InternetAddress(senderAddress));
+		mime.setTo(to);
+		mime.setSubject(subject);
+		mime.setText(html);
+		mail.send(msg);
+	}
+	
+	public static void main(String[] args) throws InstantiationException, IllegalAccessException, MessagingException {
+		TestJavaMailSenderImpl.class.newInstance().sendHtmlMail(recipientAddress, "test", "test");
+	}
+	
+}

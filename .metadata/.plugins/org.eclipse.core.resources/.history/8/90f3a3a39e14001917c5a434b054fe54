@@ -1,0 +1,53 @@
+package com.dcb.vtmis;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class Test {
+	
+	public static void main(String[] args) {
+		
+		//JDBCUtil.getConnection();
+		/*ApplicationContext context = new ClassPathXmlApplicationContext("springmvc.xml");
+		VesselPlanAction action = (VesselPlanAction) context.getBean("vesselPlanAction");
+		action.getVesselPlanService().getVesselPlan();*/
+		/*String token = action.doAuthentication();
+		action.applyVesselPlan(token);*/
+//		action.updateVesselPlan(token);
+//		action.getVesselPlan(token,"0");
+//		action.deleteVesselPlan(token, 10234);
+		
+		/*SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm");
+		Calendar calendar = Calendar.getInstance();
+		calendar.setTime(new Date());
+		calendar.add(Calendar.DAY_OF_MONTH, -2);//获取当前时间的前2天
+		try {
+			System.out.println(sdf.parse("2018/12/26 00:50").before(calendar.getTime()));
+		} catch (ParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}*/
+		
+		List list = new ArrayList<>();
+		list.add(123);
+		list.add(2345);
+		list.add(23452);
+		
+		for(int i = 0; i < list.size(); i++){
+			if(i < list.size()-1){
+				System.out.println(list.size());
+				System.out.println(list.get(i++));
+				list.remove(i++);
+//				System.out.println(list.get(i+++1));
+				System.out.println(list.size());
+			}
+		} 
+
+	}
+
+
+}
+
+
+
+

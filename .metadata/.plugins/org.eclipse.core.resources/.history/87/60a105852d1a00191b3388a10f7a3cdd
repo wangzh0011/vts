@@ -1,0 +1,13 @@
+package com.dcb.test.myTest;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+
+@Controller
+public class MyTest {
+
+	@RequestMapping
+	public String test(){
+		return "";
+	}
+}

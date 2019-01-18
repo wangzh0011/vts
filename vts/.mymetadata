@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project-module
+  type="WEB"
+  name="vts"
+  id="myeclipse.1545375817330"
+  context-root="/vts"
+  j2ee-spec="5.0"
+  archive="vts.war">
+  <attributes>
+    <attribute name="webrootdir" value="WebRoot" />
+  </attributes>
+</project-module>
+

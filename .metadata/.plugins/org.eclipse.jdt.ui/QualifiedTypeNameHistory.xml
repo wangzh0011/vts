@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<qualifiedTypeNameHistroy>
+<fullyQualifiedTypeName name="javax.annotation.Resource"/>
+<fullyQualifiedTypeName name="org.quartz.JobBuilder"/>
+<fullyQualifiedTypeName name="java.util.Calendar"/>
+<fullyQualifiedTypeName name="java.sql.PreparedStatement"/>
+<fullyQualifiedTypeName name="java.lang.Override"/>
+<fullyQualifiedTypeName name="com.dcb.vtmis.util.Constants"/>
+<fullyQualifiedTypeName name="org.springframework.stereotype.Component"/>
+<fullyQualifiedTypeName name="org.springframework.scheduling.annotation.Scheduled"/>
+<fullyQualifiedTypeName name="java.sql.ResultSet"/>
+<fullyQualifiedTypeName name="javax.servlet.http.HttpSession"/>
+<fullyQualifiedTypeName name="com.dcb.vtmis.entity.VesselPlan"/>
+<fullyQualifiedTypeName name="java.text.SimpleDateFormat"/>
+<fullyQualifiedTypeName name="java.lang.System"/>
+<fullyQualifiedTypeName name="com.dcb.vtmis.action.VesselPlanAction"/>
+</qualifiedTypeNameHistroy>

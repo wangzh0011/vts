@@ -1,0 +1,20 @@
+package com.dcb.vtmis.util;
+
+import java.io.IOException;
+import java.util.Properties;
+
+public class PropertiesUtil {
+	/**
+	 * 读取属性文件
+	 * @return
+	 */
+	public static Properties getProperties(String proName) {
+		Properties pro = new Properties();
+		try {
+			pro.load(PropertiesUtil.class.getResourceAsStream(proName));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return pro;
+	}
+}

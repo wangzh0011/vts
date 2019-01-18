@@ -1,0 +1,11 @@
+package com.dcb.vtmis.util;
+
+
+public class Constants {
+	public static final String _200 = "申报成功";
+	public static final String _400 = "请求格式不正确";
+	public static final String _401 = "权限不足";
+	public static final String _403 = "该船舶计划已被审核";
+	public static final String _406 = "数据验证不通过";
+	public static final String _412 = "请核对船名并重新申报";
+}

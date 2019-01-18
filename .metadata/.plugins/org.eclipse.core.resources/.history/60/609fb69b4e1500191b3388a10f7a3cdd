@@ -1,0 +1,72 @@
+package com.dcb.vtmis.util;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.util.Properties;
+
+import org.apache.log4j.Logger;
+/**
+ * jdbc连接工具
+ * @author alan.wang
+ *
+ */
+public class JDBCUtil {
+	private static Properties pro = PropertiesUtil.getProperties("/vtmis.properties");
+	private static final Logger log = Logger.getLogger(JDBCUtil.class); 
+	private static String url = pro.getProperty("jdbc.url");
+	private static String username = pro.getProperty("jdbc.username");
+	private static String pwd = pro.getProperty("jdbc.password");
+	
+	public static Connection getConnection() {
+		try {
+			Class.forName(pro.getProperty("jdbc.driver"));
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		}
+		Connection conn = null;
+		try {
+			conn = DriverManager.getConnection(url, username, pwd);
+			log.info("数据库连接成功。");
+		} catch (SQLException e) {
+			log.error("数据库连接异常 "+e.getMessage(),e);
+		}
+		return conn;
+	}
+	
+	public static Connection getConnection1() {//for test
+		try {
+			Class.forName(pro.getProperty("jdbc.driver"));
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		}
+		Connection conn = null;
+		try {
+			conn = DriverManager.getConnection("jdbc:oracle:thin:@172.25.40.31:1641/dbgu.dachanbayone.com", "bargeadm", "bargeadm123");
+			//log.info("数据库连接成功。");
+		} catch (SQLException e) {
+			log.error("数据库连接异常 "+e.getMessage(),e);
+		}
+		return conn;
+	}
+	
+	/**
+	 * 获取上下港
+	 * @return
+	 */
+	public static Connection getConnection2() {//for test
+		try {
+			Class.forName(pro.getProperty("jdbc.driver"));
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		}
+		Connection conn = null;
+		try {
+			conn = DriverManager.getConnection("jdbc:oracle:thin:@172.25.35.31:1661/dbgp.dachanbayone.com", "bargeadm", "bargeadm123");
+			//log.info("数据库连接成功。");
+		} catch (SQLException e) {
+			log.error("数据库连接异常 "+e.getMessage(),e);
+		}
+		return conn;
+	}
+}

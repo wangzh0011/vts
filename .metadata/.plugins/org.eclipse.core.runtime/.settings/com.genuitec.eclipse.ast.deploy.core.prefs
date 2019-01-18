@@ -1,0 +1,13 @@
+eclipse.preferences.version=1
+tomcat7Server.vts.IEARProjectName=
+tomcat7Server.vts.altContextRoot=
+tomcat7Server.vts.contextRoot=/vts
+tomcat7Server.vts.deployIsOverProject=false
+tomcat7Server.vts.deploymentPath=D\:\\Program Files (x86)\\apache-tomcat-7.0.91\\webapps\\vts.war
+tomcat7Server.vts.isDeployed=true
+tomcat7Server.vts.isExploded=false
+tomcat7Server.vts.isUptoDate=true
+tomcat7Server.vts.noFileCopy=false
+tomcat7Server.vts.shouldBackup=false
+tomcat7Server.vts.shouldOverwrite=false
+tomcat7Server.vts.type=WebDeployment

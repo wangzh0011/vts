@@ -1,0 +1,484 @@
+package com.dcb.vtmis.service.impl;
+
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+
+import org.apache.http.HttpHost;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpPut;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.util.EntityUtils;
+import org.apache.log4j.Logger;
+import org.json.JSONObject;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.stereotype.Service;
+
+import com.dcb.vtmis.dao.VesselPlanDao;
+import com.dcb.vtmis.entity.VesselPlan;
+import com.dcb.vtmis.service.VesselPlanService;
+import com.dcb.vtmis.util.Constants;
+import com.dcb.vtmis.util.HtmlFactory;
+import com.dcb.vtmis.util.MailUtil;
+import com.dcb.vtmis.util.PropertiesUtil;
+
+@Service("vesselPlanService")
+public class VesselPlanServiceImpl implements VesselPlanService{
+	
+	private static final Logger log = Logger.getLogger(VesselPlanServiceImpl.class);
+	private static Properties pro = PropertiesUtil.getProperties("/vtmis.properties");
+	private String[] to = pro.getProperty("to").split(",");
+	private MailUtil mailUtil = new MailUtil();
+	private HtmlFactory htmlFactory = new HtmlFactory();
+	public void setMailSender(JavaMailSender mailSender) {
+		this.mailSender = mailSender;
+	}
+	
+	@Autowired
+	private JavaMailSender mailSender;
+	
+	@Autowired
+	private VesselPlanDao vesselPlanDao;
+	
+	@Override
+	public List<VesselPlan> getVesselPlan() {
+		return vesselPlanDao.getVesselPlan();
+	}
+	
+	@Override
+	public Map<String,VesselPlan> applyVesselPlan(String token) {//申报大船
+		HttpPost post = new HttpPost(pro.getProperty("vesselPlanUrl")+"?access_token="+token);
+		RequestConfig config = RequestConfig.custom().setAuthenticationEnabled(true)
+				.setProxy(new HttpHost(pro.getProperty("proxyIp"), Integer.parseInt(pro.getProperty("proxyPort")), "HTTP"))//設置代理
+					.setConnectionRequestTimeout(5000).setConnectTimeout(5000).build();
+		post.setConfig(config);
+		HttpClientBuilder builder = HttpClientBuilder.create();
+		CloseableHttpClient client = builder.setDefaultRequestConfig(config).build();
+		CloseableHttpResponse response = null;
+		List<VesselPlan> list = getVesselPlan();
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+		Map<String,VesselPlan> map = new HashMap<String,VesselPlan>();
+		int isExist = 0;
+		VesselPlan vessel = null;
+		for (VesselPlan vp : list) {
+			/*log.debug("测试数据begin");
+			log.debug("测试数据end");*/
+			isExist = vesselPlanDao.isExist(vp.getReferenceId());
+			if(isExist == 1) {
+				log.info(vp.getReferenceId()+"已存在");
+				//跟vesselPlan表数据比较是否有更新
+				vessel = vesselPlanDao.hasUpdate(vp);
+				if(vessel != null){//数据有变化 进行更新操作
+					log.info("数据有变化，正在更新数据。");
+					updateVesselPlan(token,vp);
+					log.info("数据变更前："+vessel);//本地数据库中的数据
+					log.info("数据变更后："+vp);//N4数据
+					log.info("========================================================================================");
+					log.info("========================================================================================");
+					continue;
+				}else{
+					log.info("数据无变化，不进行更新操作。");
+					log.info("========================================================================================");
+					log.info("========================================================================================");
+					continue;
+				}
+			}
+			log.info("============================begin applyVesselPlan 大船...================================");
+			JSONObject postData = new JSONObject();
+			postData.put("ID", vp.getId());
+			postData.put("ReferenceID", vp.getReferenceId());
+			postData.put("LocalShipName", vp.getLocalShipName());
+			postData.put("EnShipName", vp.getEnShipName());
+			postData.put("MMSI", vp.getMmsi());
+			postData.put("IMONO", vp.getImono());
+			postData.put("FlagCode", vp.getFlagCode());
+			postData.put("ShipTypeCode", vp.getShipTypeCode());
+			postData.put("DWT", vp.getDwt());
+			postData.put("Callsign", vp.getCallSign());
+			postData.put("ShipNO", vp.getShipNo());
+			postData.put("VesselLength", vp.getVesselLength());
+			postData.put("Gross", vp.getGross());
+			postData.put("Net", vp.getNet());
+			postData.put("VesselActionCode", vp.getVesselActionCode());
+			postData.put("LocationName", vp.getLocaltionName());
+			postData.put("PlanTime", sdf.format(vp.getPlanTime()));
+			postData.put("SubmitContact", vp.getSubmitContact());
+			postData.put("CaptainNumber", vp.getCaptainNumber());
+			postData.put("PreviousPort", vp.getPreviousPort());
+			postData.put("NextPort", vp.getNextPort());
+			postData.put("CargoName", vp.getCargoName());
+			postData.put("CargoWeight", vp.getCargoWeight());
+			postData.put("Status", vp.getStatus());
+			postData.put("VoyageNumber", vp.getVoyageNumber());
+			postData.put("Comments", vp.getComments());
+			postData.put("Update", 0);
+			post.setEntity(new StringEntity(postData.toString(),"utf-8"));
+			log.info("申报数据："+postData.toString());
+			post.setHeader("Content-Type", "application/json"); // 更改传输数据的格式。
+			post.setHeader("Accept", "application/json");
+			try {
+				log.info("getEntity(): "+post.getEntity());
+				log.info("getRequestLine(): "+post.getRequestLine());
+				response = client.execute(post);
+				String str = EntityUtils.toString(response.getEntity());
+				log.info("申报船舶计划响应状态："+response.getStatusLine());
+				log.info("申报船舶计划响应数据："+str);
+				String httpStatusCode = String.valueOf(response.getStatusLine().getStatusCode());
+				vp.setJsonStatus(httpStatusCode);
+				if(httpStatusCode.equals("200")) {
+					log.info(vp.getEnShipName()+" 船申报成功！！！");
+					vesselPlanDao.insertVesselPlan(vp);
+					//发送邮件
+					mailUtil.sendEmail(to, Constants._200, htmlFactory.Make_Notice(vp.getReferenceId(),vp.getEnShipName(),vp.getShipNo(),Constants._200), mailSender);
+					log.info("========================================================================================");
+					log.info("========================================================================================");
+				}
+				else if(httpStatusCode.equals("400")) {
+					log.warn(Constants._400);
+					//发送邮件
+					mailUtil.sendEmail(to, Constants._400, htmlFactory.Make_Notice(vp.getReferenceId(),vp.getEnShipName(),vp.getShipNo(),Constants._400), mailSender);
+					log.info("发送邮件成功");
+					log.info("========================================================================================");
+					log.info("========================================================================================");
+				}
+				else if(httpStatusCode.equals("401")) {
+					log.warn(Constants._401);
+				}
+				else if(httpStatusCode.equals("406")) {
+					log.warn(vp.getEnShipName()+Constants._406);
+					if(str.contains("计划上报重复")){//若响应报文为计划上报重复，则向用户发送邮件告知用户需取消此计划重新申报
+						vesselPlanDao.insertVesselPlan(vp);
+						mailUtil.sendEmail(to, vp.getEnShipName()+"计划上报重复", htmlFactory.Make_Notice(vp.getReferenceId(),vp.getEnShipName(),vp.getShipNo(),"计划上报重复,请登录船舶航行计划申报平台取消此计划。"), mailSender);
+					}else{
+						//发送邮件
+						mailUtil.sendEmail(to, vp.getEnShipName()+Constants._406, htmlFactory.Make_Notice(vp.getReferenceId(),vp.getEnShipName(),vp.getShipNo(),Constants._406), mailSender);
+					}
+					log.info("发送邮件成功");
+					log.info("========================================================================================");
+					log.info("========================================================================================");
+				}
+				else if(httpStatusCode.equals("412")) {
+					log.warn(Constants._412);
+					//删除本地库的相应的数据
+					vesselPlanDao.deleteVesselPlan(vp.getReferenceId());
+					log.info("已删除本地库中需重新申报的数据");
+					//发送邮件
+					mailUtil.sendEmail(to, Constants._412, htmlFactory.Make_Notice(vp.getReferenceId(),vp.getEnShipName(),vp.getShipNo(),Constants._412), mailSender);
+					log.info("发送邮件成功");
+					log.info("========================================================================================");
+					log.info("========================================================================================");
+				}
+//				map.put(httpStatusCode, vp);
+			} catch (ClientProtocolException e) {
+				log.error(e.getMessage(),e);
+			} catch (IOException e) {
+				log.error(e.getMessage(),e);
+			} catch (Exception e) {
+				log.error(e.getMessage(),e);
+			}/*finally {
+				post.abort();
+	            if (response != null) {
+	                 EntityUtils.consumeQuietly(response.getEntity());
+	            }
+
+			}*/
+		}
+		list.clear();
+		System.gc();//请求jvm回收垃圾对象
+		return map;
+	}
+	
+	@Override
+	public Map<String,VesselPlan> applyVesselPlan2(String token) {//申报驳船
+		HttpPost post = new HttpPost(pro.getProperty("vesselPlanUrl")+"?access_token="+token);
+		RequestConfig config = RequestConfig.custom().setAuthenticationEnabled(true)
+				.setProxy(new HttpHost(pro.getProperty("proxyIp"), Integer.parseInt(pro.getProperty("proxyPort")), "HTTP"))//設置代理
+					.setConnectionRequestTimeout(5000).setConnectTimeout(5000).build();
+		post.setConfig(config);
+		HttpClientBuilder builder = HttpClientBuilder.create();
+		CloseableHttpClient client = builder.setDefaultRequestConfig(config).build();
+		CloseableHttpResponse response = null;
+		List<VesselPlan> list = vesselPlanDao.getVesselPlan2();
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+		Map<String,VesselPlan> map = new HashMap<String,VesselPlan>();
+		int isExist = 0;
+		VesselPlan vessel = null;
+		
+		//考虑到同一条驳船可能会有2个不同航次，一装一卸。
+		for(int i = 0; i < list.size(); i++){
+			if(i < list.size()-1){
+				if(list.get(i).getEnShipName().equals(list.get(i+1).getEnShipName()) 
+						&& list.get(i).getVesselActionCode().equals(list.get(i+1).getVesselActionCode())){//判断两个船舶计划是否属于同一条船
+					if(list.get(i).getPlanTime().equals(list.get(i+1).getPlanTime())){//判断预计靠离泊时间是否一致
+						list.remove(i+1);
+					}else{
+						if(list.get(i).getVesselActionCode().equals(1)){
+							
+						}
+					}
+				}
+			}
+		}
+		
+		for (VesselPlan vp : list) {
+			/*log.debug("测试数据begin");
+			log.debug("测试数据end");*/
+			isExist = vesselPlanDao.isExist(vp.getReferenceId());
+			if(isExist == 1) {
+				log.info(vp.getReferenceId()+"已存在");
+				//跟vesselPlan表数据比较是否有更新
+				vessel = vesselPlanDao.hasUpdate(vp);
+				if(vessel != null){//数据有变化 进行更新操作
+					log.info("数据有变化，正在更新数据。");
+					updateVesselPlan(token,vp);
+					log.info("数据变更前："+vessel);//本地数据库中的数据
+					log.info("数据变更后："+vp);//N4数据
+					log.info("========================================================================================");
+					log.info("========================================================================================");
+					continue;
+				}else{
+					log.info("数据无变化，不进行更新操作。");
+					log.info("========================================================================================");
+					log.info("========================================================================================");
+					continue;
+				}
+			}
+			log.info("============================begin applyVesselPlan 驳船...================================");
+			JSONObject postData = new JSONObject();
+			postData.put("ID", vp.getId());
+			postData.put("ReferenceID", vp.getReferenceId());
+			postData.put("LocalShipName", vp.getLocalShipName());
+			postData.put("EnShipName", vp.getEnShipName());
+			postData.put("MMSI", vp.getMmsi());
+			postData.put("IMONO", vp.getImono());
+			postData.put("FlagCode", vp.getFlagCode());
+			postData.put("ShipTypeCode", vp.getShipTypeCode());
+			postData.put("DWT", vp.getDwt());
+			postData.put("Callsign", vp.getCallSign());
+			postData.put("ShipNO", vp.getShipNo());
+			postData.put("VesselLength", vp.getVesselLength());
+			postData.put("Gross", vp.getGross());
+			postData.put("Net", vp.getNet());
+			postData.put("VesselActionCode", vp.getVesselActionCode());
+			postData.put("LocationName", vp.getLocaltionName());
+			postData.put("PlanTime", sdf.format(vp.getPlanTime()));
+			postData.put("SubmitContact", vp.getSubmitContact());
+			postData.put("CaptainNumber", vp.getCaptainNumber());
+			postData.put("PreviousPort", vp.getPreviousPort());
+			postData.put("NextPort", vp.getNextPort());
+			postData.put("CargoName", vp.getCargoName());
+			postData.put("CargoWeight", vp.getCargoWeight());
+			postData.put("Status", vp.getStatus());
+			postData.put("VoyageNumber", vp.getVoyageNumber());
+			postData.put("Comments", vp.getComments());
+			postData.put("Update", 0);
+			post.setEntity(new StringEntity(postData.toString(),"utf-8"));
+			log.info("申报数据："+postData.toString());
+			post.setHeader("Content-Type", "application/json"); // 更改传输数据的格式。
+			post.setHeader("Accept", "application/json");
+			try {
+				log.info("getEntity(): "+post.getEntity());
+				log.info("getRequestLine(): "+post.getRequestLine());
+				response = client.execute(post);
+				String str = EntityUtils.toString(response.getEntity());
+				log.info("申报船舶计划响应状态："+response.getStatusLine());
+				log.info("申报船舶计划响应数据："+str);
+				String httpStatusCode = String.valueOf(response.getStatusLine().getStatusCode());
+				vp.setJsonStatus(httpStatusCode);
+				if(httpStatusCode.equals("200")) {
+					log.info(vp.getEnShipName()+" 船申报成功！！！");
+					vesselPlanDao.insertVesselPlan(vp);
+					//发送邮件
+					mailUtil.sendEmail(to, Constants._200, htmlFactory.Make_Notice(vp.getReferenceId(),vp.getEnShipName(),vp.getShipNo(),Constants._200), mailSender);
+					log.info("========================================================================================");
+					log.info("========================================================================================");
+				}
+				else if(httpStatusCode.equals("400")) {
+					log.warn(Constants._400);
+					//发送邮件
+					mailUtil.sendEmail(to, Constants._400, htmlFactory.Make_Notice(vp.getReferenceId(),vp.getEnShipName(),vp.getShipNo(),Constants._400), mailSender);
+					log.info("发送邮件成功");
+					log.info("========================================================================================");
+					log.info("========================================================================================");
+				}
+				else if(httpStatusCode.equals("401")) {
+					log.warn(Constants._401);
+				}
+				else if(httpStatusCode.equals("406")) {
+					log.warn(vp.getEnShipName()+Constants._406);
+					if(str.contains("计划上报重复")){//若响应报文为计划上报重复，则向用户发送邮件告知用户需取消此计划重新申报
+						vesselPlanDao.insertVesselPlan(vp);
+						mailUtil.sendEmail(to, vp.getEnShipName()+"计划上报重复", htmlFactory.Make_Notice(vp.getReferenceId(),vp.getEnShipName(),vp.getShipNo(),"计划上报重复,请登录船舶航行计划申报平台取消此计划。"), mailSender);
+					}else{
+						//发送邮件
+						mailUtil.sendEmail(to, vp.getEnShipName()+Constants._406, htmlFactory.Make_Notice(vp.getReferenceId(),vp.getEnShipName(),vp.getShipNo(),Constants._406), mailSender);
+					}
+					log.info("发送邮件成功");
+					log.info("========================================================================================");
+					log.info("========================================================================================");
+				}
+				else if(httpStatusCode.equals("412")) {
+					log.warn(Constants._412);
+					//删除本地库的相应的数据
+					vesselPlanDao.deleteVesselPlan(vp.getReferenceId());
+					log.info("已删除本地库中需重新申报的数据");
+					//发送邮件
+					mailUtil.sendEmail(to, Constants._412, htmlFactory.Make_Notice(vp.getReferenceId(),vp.getEnShipName(),vp.getShipNo(),Constants._412), mailSender);
+					log.info("发送邮件成功");
+					log.info("========================================================================================");
+					log.info("========================================================================================");
+				}
+//				map.put(httpStatusCode, vp);
+			} catch (ClientProtocolException e) {
+				log.error(e.getMessage(),e);
+			} catch (IOException e) {
+				log.error(e.getMessage(),e);
+			} catch (Exception e) {
+				log.error(e.getMessage(),e);
+			}/*finally {
+				post.abort();
+	            if (response != null) {
+	                 EntityUtils.consumeQuietly(response.getEntity());
+	            }
+
+			}*/
+		}
+		list.clear();
+		System.gc();//请求jvm回收垃圾对象
+		return map;
+	}
+	
+	@Override
+	public Map<String,String> updateVesselPlan(String token,VesselPlan vp) {
+		log.info("==============================begin updateVesselPlan...=================================");
+		HttpPut put = new HttpPut(pro.getProperty("vesselPlanUrl")+"?access_token="+token);
+		RequestConfig config = RequestConfig.custom().setAuthenticationEnabled(true)
+				.setProxy(new HttpHost(pro.getProperty("proxyIp"), Integer.parseInt(pro.getProperty("proxyPort")), "HTTP"))//設置代理
+					.setConnectionRequestTimeout(5000).setConnectTimeout(5000).build();
+		put.setConfig(config);
+		HttpClientBuilder builder = HttpClientBuilder.create();
+		CloseableHttpClient client = builder.setDefaultRequestConfig(config).build();
+		CloseableHttpResponse response = null;
+//		List<VesselPlan> list = getVesselPlan();
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+		Map<String,String> map = new HashMap<String,String>();
+//		for (VesselPlan vp : list) {
+			JSONObject postData = new JSONObject();
+			postData.put("ID", vp.getId());
+			postData.put("ReferenceID", vp.getReferenceId());
+			postData.put("LocalShipName", vp.getLocalShipName());
+			postData.put("EnShipName", vp.getEnShipName());
+			postData.put("MMSI", vp.getMmsi());
+			postData.put("IMONO", vp.getImono());
+			postData.put("FlagCode", vp.getFlagCode());
+			postData.put("ShipTypeCode", vp.getShipTypeCode());
+			postData.put("DWT", vp.getDwt());
+			postData.put("Callsign", vp.getCallSign());
+			postData.put("ShipNO", vp.getShipNo());
+			postData.put("VesselLength", vp.getVesselLength());
+			postData.put("Gross", vp.getGross());
+			postData.put("Net", vp.getNet());
+			postData.put("VesselActionCode", vp.getVesselActionCode());
+			postData.put("LocationName", vp.getLocaltionName());
+			postData.put("PlanTime", sdf.format(vp.getPlanTime()));
+			postData.put("SubmitContact", vp.getSubmitContact());
+			postData.put("CaptainNumber", vp.getCaptainNumber());
+			postData.put("PreviousPort", vp.getPreviousPort());
+			postData.put("NextPort", vp.getNextPort());
+			postData.put("CargoName", vp.getCargoName());
+			postData.put("CargoWeight", vp.getCargoWeight());
+			postData.put("Status", vp.getStatus());
+			postData.put("VoyageNumber", vp.getVoyageNumber());
+			postData.put("Comments", vp.getComments());
+			postData.put("Update", 1);//修改   默认是0   修改是1
+			put.setEntity(new StringEntity(postData.toString(),"utf-8"));
+			log.info("修改数据："+postData.toString());
+			put.setHeader("Content-Type", "application/json"); // 更改传输数据的格式。
+			put.setHeader("Accept", "application/json");
+			try {
+				log.info("getEntity(): "+put.getEntity());
+				log.info("getRequestLine(): "+put.getRequestLine());
+				response = client.execute(put);
+				String str = EntityUtils.toString(response.getEntity());
+				log.info("修改船舶计划响应状态："+response.getStatusLine());
+				log.info("修改船舶计划响应数据："+str);
+				String httpStatusCode = String.valueOf(response.getStatusLine().getStatusCode());
+				if(httpStatusCode.equals("200")) {
+//					map.put(vp.getReferenceId(), httpStatusCode);
+					vp.setJsonStatus(httpStatusCode);
+					vesselPlanDao.updateVesselPlan(vp);
+					//发送邮件
+					mailUtil.sendEmail(to, Constants._200, htmlFactory.Make_Notice(vp.getReferenceId(),vp.getEnShipName(),vp.getShipNo(),Constants._200), mailSender);
+					log.info("========================================================================================");
+					log.info("========================================================================================");
+				}
+				else if(httpStatusCode.equals("400")) {
+					log.warn(Constants._400);
+					
+					//发送邮件
+					mailUtil.sendEmail(to, Constants._400, htmlFactory.Make_Notice(vp.getReferenceId(),vp.getEnShipName(),vp.getShipNo(),Constants._400), mailSender);
+					log.info("发送邮件成功");
+					log.info("========================================================================================");
+					log.info("========================================================================================");
+				}
+				else if(httpStatusCode.equals("401")) {
+					log.warn(Constants._401);
+				}
+				else if(httpStatusCode.equals("403")) {
+					log.warn(Constants._403);
+					//删除本地库的相应的数据
+					vesselPlanDao.deleteVesselPlan(vp.getReferenceId());
+					log.info("已删除本地库中已被审核的记录");
+					//发送邮件
+					mailUtil.sendEmail(to, Constants._403, htmlFactory.Make_Notice(vp.getReferenceId(),vp.getEnShipName(),vp.getShipNo(),Constants._403), mailSender);
+					log.info("发送邮件成功");
+					log.info("========================================================================================");
+					log.info("========================================================================================");
+				}
+				else if(httpStatusCode.equals("406")) {
+					log.warn("update "+Constants._406);
+					//发送邮件
+					mailUtil.sendEmail(to, Constants._406, htmlFactory.Make_Notice(vp.getReferenceId(),vp.getEnShipName(),vp.getShipNo(),Constants._406), mailSender);
+					log.info("发送邮件成功");
+					log.info("========================================================================================");
+					log.info("========================================================================================");
+				}
+				else if(httpStatusCode.equals("412")) {
+					log.warn(Constants._412);
+					//删除本地库的相应的数据
+					vesselPlanDao.deleteVesselPlan(vp.getReferenceId());
+					log.info("已删除本地库中需重新申报的数据");
+					//发送邮件
+					mailUtil.sendEmail(to, Constants._412, htmlFactory.Make_Notice(vp.getReferenceId(),vp.getEnShipName(),vp.getShipNo(),Constants._412), mailSender);
+					log.info("发送邮件成功");
+					log.info("========================================================================================");
+					log.info("========================================================================================");
+				}
+			} catch (ClientProtocolException e) {
+				log.error(e.getMessage(),e);
+//				map.put("ClientProtocolException", e.getMessage());
+			} catch (IOException e) {
+				log.error(e.getMessage(),e);
+//				map.put("IOException", e.getMessage());
+			}/*finally {
+				put.abort();
+	            if (response != null) {
+	                 EntityUtils.consumeQuietly(response.getEntity());
+	            }
+
+			}*/
+			
+//		}
+		return map;
+	}
+
+}
